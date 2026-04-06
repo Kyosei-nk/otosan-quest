@@ -292,70 +292,117 @@ function animTitle(){
 }
 
 function renderTitle(){
-  const W=canvas.width,H=canvas.height;
-  // 夜の背景グラデ
+  const W=canvas.width, H=canvas.height;
+
+  // ── 深夜空グラデーション ──
   const bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#000820'); bg.addColorStop(1,'#001040');
+  bg.addColorStop(0,'#000510');
+  bg.addColorStop(0.65,'#000c30');
+  bg.addColorStop(1,'#001555');
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
-  // 星
-  ctx.fillStyle='rgba(255,255,220,0.8)';
-  [[0.1,0.08],[0.85,0.05],[0.45,0.12],[0.7,0.18],[0.22,0.20],
-   [0.6,0.07],[0.33,0.04],[0.9,0.14],[0.05,0.16],[0.78,0.22]].forEach(([rx,ry])=>{
-    const a=0.4+0.5*Math.abs(Math.sin(titleT*0.03+rx*10));
+  // 地平線のほのかな輝き
+  const hor=ctx.createLinearGradient(0,H*0.70,0,H*0.80);
+  hor.addColorStop(0,'rgba(40,60,180,0)');
+  hor.addColorStop(0.5,'rgba(60,90,220,0.14)');
+  hor.addColorStop(1,'rgba(40,60,180,0)');
+  ctx.fillStyle=hor; ctx.fillRect(0,H*0.70,W,H*0.10);
+
+  // ── 星（20個・2サイズ・瞬き） ──
+  [[.08,.06],[.88,.04],[.44,.11],[.72,.15],[.20,.18],
+   [.62,.06],[.31,.03],[.93,.13],[.04,.14],[.79,.20],
+   [.15,.25],[.55,.08],[.38,.22],[.67,.28],[.92,.30],
+   [.25,.32],[.50,.17],[.75,.09],[.10,.35],[.85,.24]
+  ].forEach(([rx,ry],i)=>{
+    const a=0.25+0.75*Math.abs(Math.sin(titleT*0.025+i*1.3));
     ctx.globalAlpha=a;
-    ctx.fillRect(W*rx,H*ry,2,2);
+    ctx.fillStyle='#fffde8';
+    ctx.fillRect(W*rx,H*ry,i%5===0?2:1,i%5===0?2:1);
   });
   ctx.globalAlpha=1;
 
-  // タイトルウィンドウ
-  const tw=W*0.88, tx=(W-tw)/2;
-  dqWin(tx, H*0.10, tw, H*0.22);
+  // ── タイトルロゴ枠（装飾二重ボーダー） ──
+  const tw=W*0.90, tx=(W-tw)/2;
+  const ty=H*0.05, th=H*0.30;
+  const pulse=0.65+0.35*Math.sin(titleT*0.05);
 
-  // タイトル文字
+  // 背景を暗く
+  ctx.fillStyle='rgba(0,0,30,0.75)';
+  ctx.fillRect(tx,ty,tw,th);
+  // 金色外枠
+  ctx.fillStyle=`rgba(210,165,20,${pulse})`;
+  ctx.fillRect(tx,ty,tw,3); ctx.fillRect(tx,ty+th-3,tw,3);
+  ctx.fillRect(tx,ty,3,th); ctx.fillRect(tx+tw-3,ty,3,th);
+  // 白内枠
+  ctx.fillStyle='rgba(255,255,210,0.55)';
+  ctx.fillRect(tx+5,ty+5,tw-10,2); ctx.fillRect(tx+5,ty+th-7,tw-10,2);
+  ctx.fillRect(tx+5,ty+5,2,th-10); ctx.fillRect(tx+tw-7,ty+5,2,th-10);
+  // 四隅の装飾
+  [[tx+2,ty+2],[tx+tw-11,ty+2],[tx+2,ty+th-11],[tx+tw-11,ty+th-11]].forEach(([cx,cy])=>{
+    ctx.fillStyle=`rgba(255,220,80,${pulse})`;
+    ctx.fillRect(cx,cy,9,2); ctx.fillRect(cx,cy,2,9);
+  });
+
+  // ── タイトル文字（影→グラデ本体） ──
   ctx.textAlign='center';
-  const titleSize=Math.floor(W/8);
-  ctx.font=`bold ${titleSize}px 'MS Gothic',monospace`;
-  ctx.fillStyle='#ffee44';
-  ctx.fillText('おとうさん', W/2, H*0.10+H*0.12);
-  ctx.font=`bold ${Math.floor(titleSize*1.1)}px 'MS Gothic',monospace`;
-  ctx.fillStyle='#ffcc00';
-  ctx.fillText('クエスト', W/2, H*0.10+H*0.20);
+  const s1=Math.floor(W/7.2), s2=Math.floor(W/5.2);
 
-  // タイトル下の装飾線
-  ctx.fillStyle='#ffcc00';
-  ctx.fillRect(tx+8, H*0.10+H*0.22-4, tw-16, 2);
+  // 「おとうさん」
+  ctx.font=`bold ${s1}px 'MS Gothic',monospace`;
+  ctx.fillStyle='rgba(60,25,0,0.85)';
+  ctx.fillText('おとうさん', W/2+3, ty+th*0.44+3);
+  const g1=ctx.createLinearGradient(0,ty+th*0.15,0,ty+th*0.46);
+  g1.addColorStop(0,'#fffde8'); g1.addColorStop(0.45,'#ffe040'); g1.addColorStop(1,'#b87800');
+  ctx.fillStyle=g1;
+  ctx.fillText('おとうさん', W/2, ty+th*0.44);
 
-  // スプライト表示（タイトル中央エリア）
-  const sprY=H*0.38, sprScale=Math.max(3,Math.floor(TILE*0.9/8));
-  // かずき（左）
-  const heroX=W*0.25-DOG_MAP[0].length*sprScale/2;
+  // 「クエスト」
+  ctx.font=`bold ${s2}px 'MS Gothic',monospace`;
+  ctx.fillStyle='rgba(60,25,0,0.85)';
+  ctx.fillText('クエスト', W/2+3, ty+th*0.90+3);
+  const g2=ctx.createLinearGradient(0,ty+th*0.52,0,ty+th*0.92);
+  g2.addColorStop(0,'#fffde8'); g2.addColorStop(0.35,'#ffc800'); g2.addColorStop(1,'#996000');
+  ctx.fillStyle=g2;
+  ctx.fillText('クエスト', W/2, ty+th*0.90);
+
+  // ロゴ下の輝きライン
+  ctx.fillStyle=`rgba(210,165,20,${pulse})`;
+  ctx.fillRect(tx+8,ty+th+2,tw-16,2);
+
+  // ── スプライト（かずき VS ぷりん） ──
+  const sprY=H*0.42, sprScale=Math.max(3,Math.floor(TILE/8)*1+1);
+  // かずき
+  const heroX=Math.floor(W*0.18);
   HERO0.forEach((row,ry)=>row.forEach((ci,cx)=>{
-    if(ci&&HERO_COL[ci]){
-      ctx.fillStyle=HERO_COL[ci];
-      ctx.fillRect(heroX+cx*sprScale,sprY+ry*sprScale,sprScale,sprScale);
-    }
+    if(ci&&HERO_COL[ci]){ctx.fillStyle=HERO_COL[ci];ctx.fillRect(heroX+cx*sprScale,sprY+ry*sprScale,sprScale,sprScale);}
   }));
-  // VS
-  ctx.font=`bold ${Math.floor(W/14)}px 'MS Gothic',monospace`;
-  ctx.fillStyle='#ff8844';
-  ctx.fillText('VS', W/2, sprY+HERO0.length*sprScale*0.6);
-
-  // ぷりん（右）
-  const dogX=W*0.62;
+  // VS（ぷるっとアニメ）
+  const vsS=1+0.07*Math.sin(titleT*0.12);
+  ctx.save();
+  ctx.translate(W/2, sprY+HERO0.length*sprScale*0.52);
+  ctx.scale(vsS,vsS);
+  ctx.font=`bold ${Math.floor(W/12)}px 'MS Gothic',monospace`;
+  ctx.fillStyle='rgba(80,15,0,0.75)'; ctx.fillText('VS',2,2);
+  ctx.fillStyle='#ff5500';           ctx.fillText('VS',0,0);
+  ctx.restore();
+  // ぷりん
+  const dogX=Math.floor(W*0.60);
   DOG_MAP.forEach((row,ry)=>row.forEach((ci,cx)=>{
-    if(ci&&DOG_COL[ci]){
-      ctx.fillStyle=DOG_COL[ci];
-      ctx.fillRect(dogX+cx*sprScale,sprY+ry*sprScale,sprScale,sprScale);
-    }
+    if(ci&&DOG_COL[ci]){ctx.fillStyle=DOG_COL[ci];ctx.fillRect(dogX+cx*sprScale,sprY+ry*sprScale,sprScale,sprScale);}
   }));
+  // スプライト下の地面ライン
+  const groundY=sprY+HERO0.length*sprScale+5;
+  ctx.fillStyle=`rgba(80,110,220,${0.18+0.1*Math.sin(titleT*0.04)})`;
+  ctx.fillRect(tx+8,groundY,tw-16,2);
 
-  // はじめるテキスト（点滅）
-  if(Math.floor(titleT/28)%2===0){
-    dqWin(tx, H*0.76, tw, 40);
+  // ── 「はじめる」点滅 ──
+  const btnY=H*0.80;
+  if(Math.floor(titleT/30)%2===0){
+    dqWin(tx,btnY,tw,40);
     ctx.fillStyle='#ffffff';
     ctx.font=`${Math.floor(W/20)}px 'MS Gothic',monospace`;
-    ctx.fillText('▶ タップして　はじめる', W/2, H*0.76+26);
+    ctx.textAlign='center';
+    ctx.fillText('▶ タップして　はじめる', W/2, btnY+26);
   }
   ctx.textAlign='left';
 }
