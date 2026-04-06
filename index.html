@@ -766,7 +766,7 @@ function execCmd(type){
 
       typeMsg([dmgMsg],()=>{
         if(bst.eHp<=0){
-          SE.victory();
+          stopBattleBGM(); SE.victory();
           typeMsg(['ぷりんを　てなずけた！'],()=>{
             phase='battle-victory'; setTimeout(onVictory,1200);
           }); return;
@@ -782,7 +782,7 @@ function execCmd(type){
             SE.dmgNum();
             typeMsg([`ぷりんが　かみついた！`,`かずきに　${ed}の　ダメージ！`],()=>{
               if(bst.pHp<=0){
-                typeMsg(['かずきは　きぜつした…'],()=>{phase='battle-defeat';}); return;
+                typeMsg(['かずきは　きぜつした…'],()=>{ stopBattleBGM(); phase='battle-defeat'; }); return;
               }
               phase='battle-command'; bst.msgs=[]; renderBattle();
             });
@@ -806,6 +806,7 @@ function startBattleFlash(){
       clearInterval(iv);
       bst.eHp=bst.eMaxHp; bst.msgs=[]; bst.jerkyUsed=false;
       typeMsg(['ぷりんが　あらわれた！'],()=>{
+        startBattleBGM();
         phase='battle-command'; setLog('🐾 バトル中　▲芋　◀フード　▶ジャーキー　▼きゅうり'); renderBattle();
       });
       phase='battle-anim'; renderBattle();
@@ -941,6 +942,78 @@ function renderBirthday(){
 
 // ══════════════════════════════════════════
 //  バースデーメロディ
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  バトルBGM（ループ）
+// ══════════════════════════════════════════
+let _bgm=null;
+function startBattleBGM(){
+  if(_bgm)return;
+  try{
+    const ac=getAC();
+    const mg=ac.createGain();
+    mg.connect(ac.destination);
+    mg.gain.setValueAtTime(0.001,ac.currentTime);
+    mg.gain.linearRampToValueAtTime(1,ac.currentTime+0.4);
+
+    const e=0.12,q=0.24,h=0.48;
+    // ドラクエ風バトルBGM（Gマイナー）
+    const N=[
+      // ── フレーズA（メインテーマ） ──
+      [392,e],[392,e],[392,e],[587,e],[523,e],[466,e],[440,e],[392,e],
+      [466,e],[523,e],[587,e],[622,e],[587,q],[0,e],[587,e],
+      [392,e],[392,e],[392,e],[587,e],[523,e],[466,e],[440,e],[392,e],
+      [698,e],[622,e],[587,e],[523,e],[392,h],
+      // ── フレーズB（展開） ──
+      [587,e],[587,e],[587,e],[622,e],[587,e],[523,e],[466,e],[440,e],
+      [392,e],[440,e],[466,e],[523,e],[587,q],[0,e],[587,e],
+      [622,e],[587,e],[523,e],[466,e],[440,e],[392,e],[349,e],[392,e],
+      [440,e],[466,e],[523,e],[587,e],[392,h],
+      // ── フレーズC（クライマックス） ──
+      [784,e],[698,e],[622,e],[587,e],[523,e],[466,e],[440,e],[392,e],
+      [440,e],[466,e],[523,e],[587,e],[622,e],[587,q],[0,e],
+      [523,e],[587,e],[622,e],[698,e],[784,q],[698,e],[622,e],
+      [587,e],[523,e],[466,e],[440,e],[392,h],
+    ];
+    const loopLen=N.reduce((s,[,d])=>s+d,0);
+    let active=true,timer=null;
+
+    function schedLoop(start){
+      if(!active)return;
+      let t=start;
+      N.forEach(([freq,dur])=>{
+        if(freq>0){
+          const o=ac.createOscillator(),g=ac.createGain();
+          o.connect(g); g.connect(mg);
+          o.type='square'; o.frequency.value=freq;
+          g.gain.setValueAtTime(0.12,t);
+          g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.75);
+          o.start(t); o.stop(t+dur);
+        }
+        t+=dur;
+      });
+      const wait=(start+loopLen-ac.currentTime-0.3)*1000;
+      timer=setTimeout(()=>{ if(active)schedLoop(start+loopLen); },Math.max(10,wait));
+    }
+
+    schedLoop(ac.currentTime+0.15);
+    _bgm={
+      stop(){
+        active=false; clearTimeout(timer);
+        try{
+          mg.gain.setValueAtTime(mg.gain.value,ac.currentTime);
+          mg.gain.linearRampToValueAtTime(0,ac.currentTime+0.5);
+        }catch(_){}
+        setTimeout(()=>{ try{mg.disconnect();}catch(_){} },600);
+        _bgm=null;
+      }
+    };
+  }catch(_){}
+}
+function stopBattleBGM(){
+  if(_bgm)_bgm.stop();
+}
+
 // ══════════════════════════════════════════
 function playBirthday(){
   try{
